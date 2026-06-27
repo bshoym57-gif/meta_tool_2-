@@ -1,1 +1,663 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meta Ads Tool</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: 'Segoe UI', sans-serif; font-size: 13px; }
+  .loader { border: 2px solid #374151; border-top: 2px solid #3b82f6; border-radius: 50%; width: 14px; height: 14px; animation: spin .8s linear infinite; display: inline-block; vertical-align: middle; }
+  @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+  .fade { animation: fadeIn .2s; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+  input, select, textarea { font-size: 12px !important; }
+  .field { background: #111827; border: 1px solid #374151; border-radius: 6px; padding: 6px 10px; width: 100%; color: #f3f4f6; outline: none; }
+  .field:focus { border-color: #3b82f6; }
+  .btn { font-weight: 600; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: opacity .2s; }
+  .btn:hover { opacity: .85; }
+  .btn-green  { background: #16a34a; color: #fff; }
+  .btn-blue   { background: #2563eb; color: #fff; }
+  .btn-purple { background: #7c3aed; color: #fff; }
+  .btn-red    { background: #dc2626; color: #fff; }
+  .btn-gray   { background: #374151; color: #d1d5db; }
+  .btn-orange { background: #d97706; color: #fff; }
+  .btn-teal   { background: #0d9488; color: #fff; }
+  .btn-yellow { background: #ca8a04; color: #fff; }
+  .card-box { background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 8px; font-family: monospace; font-size: 11px; height: 80px; overflow-y: auto; }
+  .info  { background: #1e3a5f; border-right: 3px solid #3b82f6; padding: 6px 10px; border-radius: 4px; font-size: 11px; color: #93c5fd; }
+  .warn  { background: #431407; border-right: 3px solid #f97316; padding: 6px 10px; border-radius: 4px; font-size: 11px; color: #fdba74; }
+  .seg  { display: flex; border: 1px solid #374151; border-radius: 6px; overflow: hidden; }
+  .seg-btn { flex: 1; text-align: center; padding: 6px; font-size: 11px; cursor: pointer; color: #9ca3af; transition: all .2s; }
+  .seg-btn.active { background: #2563eb; color: #fff; }
+  .seg-btn.active-green { background: #15803d; color: #fff; }
+  .page-chip { background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 5px 8px; cursor: pointer; transition: all .15s; }
+  .page-chip:hover { border-color: #3b82f6; }
+  .page-chip.selected { border-color: #3b82f6; background: #1e3a5f; }
+  .divider { border-top: 1px solid #1f2937; margin: 10px 0; }
+</style>
+</head>
+<body class="bg-gray-950 text-gray-200 min-h-screen p-3">
 
+<div class="max-w-lg mx-auto bg-gray-900 rounded-lg border border-gray-700 p-4">
+
+  <!-- Header -->
+  <div class="flex justify-between items-center mb-3">
+    <h1 class="text-lg font-bold text-blue-400">🚀 Meta Ads Tool</h1>
+    <button onclick="resetAll()" class="btn btn-red text-xs">🔄 Reset</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="flex gap-1 mb-4 border-b border-gray-700 pb-2">
+    <button onclick="showTab('t1')" id="btn-t1" class="tab-btn text-blue-400 border-b-2 border-blue-400 pb-1 font-bold text-xs px-2">الحساب</button>
+    <button onclick="showTab('t2')" id="btn-t2" class="tab-btn text-gray-400 hover:text-white pb-1 text-xs px-2">البطاقات</button>
+    <button onclick="showTab('t3')" id="btn-t3" class="tab-btn text-gray-400 hover:text-white pb-1 text-xs px-2">إنشاء إعلان</button>
+  </div>
+
+  <!-- ══ Tab 1: الحساب ══ -->
+  <div id="t1" class="fade">
+    <div class="space-y-2">
+      <div>
+        <label class="text-gray-400 text-xs mb-1 block">الكوكيز (JSON)</label>
+        <textarea id="cookies" class="field" rows="4" placeholder='[{"name":"c_user","value":"..."}]'></textarea>
+      </div>
+      <div>
+        <label class="text-gray-400 text-xs mb-1 block">بروكسي (اختياري)</label>
+        <input id="proxy" class="field" placeholder="host:port:user:pass">
+      </div>
+      <button onclick="verifyAndExtract()" class="btn btn-green w-full">🔍 التحقق واستخراج التوكن</button>
+      <div id="accounts_list" class="space-y-1 mt-1"></div>
+
+      <!-- قائمة الصفحات -->
+      <div id="pages_section" class="hidden">
+        <div class="divider"></div>
+        <div class="flex justify-between items-center mb-2">
+          <label class="text-gray-300 text-xs font-semibold">📄 الصفحات + Page Tokens</label>
+          <button onclick="loadPages()" id="btn_load_pages" class="btn btn-gray text-xs px-2 py-1">🔄 جلب الصفحات</button>
+        </div>
+        <div id="pages_list" class="space-y-1"></div>
+        <div class="info mt-2">✅ اختر صفحة لاستخدام page token في الإعلانات وإدارة النشر</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Tab 2: البطاقات ══ -->
+  <div id="t2" class="fade hidden">
+    <div class="space-y-2">
+      <div>
+        <label class="text-gray-400 text-xs mb-1 block">الحساب الإعلاني</label>
+        <select id="card_account" class="field"><option value="">-- اختر --</option></select>
+      </div>
+      <div class="seg">
+        <div id="seg-auto" class="seg-btn active" onclick="setCardMode('auto')">🤖 ربط كامل عن طريق الأداة</div>
+        <div id="seg-manual" class="seg-btn" onclick="setCardMode('manual')">✍️ ربط ببطاقاتي</div>
+      </div>
+      <div id="mode-auto">
+        <div class="info">🤖 الأداة ستختار كارت واحد عشوائياً من المصدر وتربطه تلقائياً</div>
+      </div>
+      <div id="mode-manual" class="hidden">
+        <label class="text-gray-400 text-xs mb-1 block">البطاقات (card|mm|yyyy|cvv|name|zip)</label>
+        <textarea id="cards_text" class="field font-mono" rows="5" placeholder="4111111111111111|12|2025|123|John Doe|10001"></textarea>
+      </div>
+      <button onclick="addCards()" class="btn btn-purple w-full">💳 بدء الربط</button>
+      <div id="cards_log" class="card-box hidden"></div>
+      <div class="info">ℹ️ فيسبوك يحمي صفحة الفواتير — قد تحتاج للتحقق يدوياً</div>
+    </div>
+  </div>
+
+  <!-- ══ Tab 3: إنشاء إعلان ══ -->
+  <div id="t3" class="fade hidden">
+    <div class="space-y-2">
+
+      <!-- الحساب الإعلاني -->
+      <div>
+        <label class="text-gray-400 text-xs mb-1 block">الحساب الإعلاني</label>
+        <select id="ad_account" class="field"><option value="">-- اختر --</option></select>
+      </div>
+
+      <!-- الصفحة المختارة -->
+      <div>
+        <label class="text-gray-400 text-xs mb-1 block">الصفحة <span class="text-gray-500">(تُجلب تلقائياً من Tab 1)</span></label>
+        <div id="selected_page_display" class="field text-gray-500 text-xs">لم يتم اختيار صفحة — اذهب لتبويب الحساب واختر صفحة</div>
+      </div>
+
+      <!-- رابط المنشور -->
+      <div>
+        <label class="text-gray-400 text-xs mb-1 block">رابط المنشور</label>
+        <input id="post_url" class="field" placeholder="https://www.facebook.com/page/posts/123..." oninput="scheduleExtract()">
+        <div id="post_status" class="text-xs text-gray-500 mt-1 hidden"></div>
+      </div>
+
+      <!-- الميزانية + الأيام + الهدف -->
+      <div class="grid grid-cols-3 gap-2">
+        <div>
+          <label class="text-gray-400 text-xs mb-1 block">ميزانية $ / يوم</label>
+          <input type="number" id="budget" class="field" value="10" min="1">
+        </div>
+        <div>
+          <label class="text-gray-400 text-xs mb-1 block">الأيام (0=بلا حد)</label>
+          <input type="number" id="days" class="field" value="0" min="0">
+        </div>
+        <div>
+          <label class="text-gray-400 text-xs mb-1 block">الهدف</label>
+          <select id="objective" class="field" onchange="onObjectiveChange()">
+            <option value="OUTCOME_ENGAGEMENT">تفاعل</option>
+            <option value="OUTCOME_TRAFFIC">زيارات</option>
+            <option value="OUTCOME_AWARENESS">وعي</option>
+            <option value="OUTCOME_LEADS">عملاء</option>
+            <option value="OUTCOME_SALES">مبيعات</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="traffic_url_box" class="hidden">
+        <label class="text-gray-400 text-xs mb-1 block">رابط الوجهة</label>
+        <input id="traffic_url" class="field" placeholder="https://example.com">
+      </div>
+
+      <div id="budget_total" class="text-xs text-gray-500 text-center hidden"></div>
+
+      <!-- ── الجدولة ── -->
+      <div class="border-t border-gray-700 pt-2">
+        <label class="text-gray-400 text-xs mb-2 block font-semibold">⏰ الجدولة</label>
+        <div class="seg">
+          <div id="seg-nosched" class="seg-btn active" onclick="setScheduleMode(false)">⚡ بدون جدولة</div>
+          <div id="seg-sched"   class="seg-btn"        onclick="setScheduleMode(true)">📅 مجدول</div>
+        </div>
+        <div id="schedule_input" class="hidden mt-2">
+          <label class="text-gray-400 text-xs mb-1 block">المدة قبل البدء (بالدقائق)</label>
+          <input type="number" id="schedule_minutes" class="field" value="60" min="1"
+                 placeholder="مثال: 60 = يبدأ بعد ساعة">
+          <div id="schedule_preview" class="text-xs text-blue-400 mt-1"></div>
+        </div>
+      </div>
+
+      <!-- ── الاستهداف ── -->
+      <div class="border-t border-gray-700 pt-2">
+        <label class="text-gray-400 text-xs mb-2 block font-semibold">🎯 الاستهداف</label>
+        <div class="mb-2">
+          <label class="text-gray-500 text-xs mb-1 block">ID جمهور محفوظ (اختياري)</label>
+          <input id="saved_audience_id" class="field" placeholder="اتركه فارغاً للاستهداف اليدوي" oninput="onAudienceChange()">
+        </div>
+        <div id="manual_targeting" class="space-y-2">
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="text-gray-500 text-xs mb-1 block">رمز الدولة</label>
+              <input id="country" class="field" placeholder="EG" maxlength="2" value="EG">
+            </div>
+            <div>
+              <label class="text-gray-500 text-xs mb-1 block">السن (من-إلى)</label>
+              <div class="flex gap-1">
+                <input type="number" id="age_min" class="field" value="18" min="13" max="65">
+                <input type="number" id="age_max" class="field" value="65" min="13" max="65">
+              </div>
+            </div>
+            <div>
+              <label class="text-gray-500 text-xs mb-1 block">النوع</label>
+              <select id="gender" class="field">
+                <option value="0">الكل</option>
+                <option value="1">ذكور</option>
+                <option value="2">إناث</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="text-gray-500 text-xs mb-1 block">مناطق/مدن (region:id أو city:id)</label>
+            <textarea id="geo_areas" class="field font-mono" rows="2" placeholder="region:3847&#10;city:2422132"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── زرا النشر ── -->
+      <div class="border-t border-gray-700 pt-2">
+        <div class="flex gap-2">
+          <button onclick="createAd('PAUSED')" class="btn btn-gray flex-1">⏸ نشر متوقف</button>
+          <button onclick="createAd('ACTIVE')" class="btn btn-green flex-1">▶️ نشر نشط</button>
+        </div>
+      </div>
+
+      <div id="ad_result" class="card-box hidden text-xs"></div>
+
+      <!-- زر التنشيط (يظهر فقط بعد النشر المتوقف) -->
+      <button id="btn_activate" onclick="activateAd()"
+              class="btn btn-orange w-full hidden">⚡ تنشيط الإعلان المتوقف</button>
+
+      <div class="info">✅ الإعلان سيظهر في Ad Center مربوطاً بالمنشور</div>
+    </div>
+  </div>
+
+  <!-- ══ شريط إدارة الصفحة (يظهر دائماً في الأسفل إذا في صفحة مختارة) ══ -->
+  <div id="page_mgmt_bar" class="hidden mt-3 border-t border-gray-700 pt-3">
+    <div class="flex justify-between items-center mb-1">
+      <span class="text-gray-400 text-xs font-semibold">📄 إدارة الصفحة:</span>
+      <span id="mgmt_page_name" class="text-blue-400 text-xs font-bold"></span>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="togglePagePublish('unpublish')"
+              class="btn btn-red flex-1 text-xs">🔴 إلغاء نشر الصفحة</button>
+      <button onclick="togglePagePublish('publish')"
+              class="btn btn-teal flex-1 text-xs">🟢 إعادة نشر الصفحة</button>
+    </div>
+    <div id="page_mgmt_result" class="text-xs mt-1 hidden"></div>
+  </div>
+
+</div>
+
+<script>
+let STATE = {
+  cookies: null, proxy: null,
+  token: null, accounts: [],
+  pages: [],
+  selectedPage: null,    // { id, name, access_token }
+  cardMode: 'auto',
+  scheduled: false,
+  lastAdId: null, lastCampId: null, lastAdSetId: null,
+  extractedPageId: '', extractedPostId: '',
+  extractTimer: null
+};
+
+// ── Tabs ──
+function showTab(id) {
+  ['t1','t2','t3'].forEach(t => {
+    document.getElementById(t).classList.add('hidden');
+    document.getElementById('btn-'+t).className = 'tab-btn text-gray-400 hover:text-white pb-1 text-xs px-2';
+  });
+  document.getElementById(id).classList.remove('hidden');
+  document.getElementById('btn-'+id).className = 'tab-btn text-blue-400 border-b-2 border-blue-400 pb-1 font-bold text-xs px-2';
+}
+
+function resetAll() {
+  if(confirm("مسح كل شيء؟")) location.reload();
+}
+
+// ── Card mode ──
+function setCardMode(m) {
+  STATE.cardMode = m;
+  document.getElementById('seg-auto').className   = 'seg-btn' + (m==='auto'?   ' active':'');
+  document.getElementById('seg-manual').className = 'seg-btn' + (m==='manual'? ' active':'');
+  document.getElementById('mode-auto').classList.toggle('hidden',   m !== 'auto');
+  document.getElementById('mode-manual').classList.toggle('hidden', m !== 'manual');
+}
+
+// ── Schedule mode ──
+function setScheduleMode(on) {
+  STATE.scheduled = on;
+  document.getElementById('seg-nosched').className = 'seg-btn' + (!on ? ' active' : '');
+  document.getElementById('seg-sched').className   = 'seg-btn' + ( on ? ' active' : '');
+  document.getElementById('schedule_input').classList.toggle('hidden', !on);
+  updateSchedulePreview();
+}
+
+function updateSchedulePreview() {
+  if(!STATE.scheduled) return;
+  const mins = parseInt(document.getElementById('schedule_minutes').value) || 0;
+  const when = new Date(Date.now() + mins * 60000);
+  document.getElementById('schedule_preview').textContent =
+    `⏰ سيبدأ الإعلان في: ${when.toLocaleString('ar-EG')}`;
+}
+document.addEventListener('input', e => {
+  if(e.target.id === 'schedule_minutes') updateSchedulePreview();
+  if(['budget','days'].includes(e.target.id)) updateBudgetTotal();
+});
+
+// ── Objective change ──
+function onObjectiveChange() {
+  const obj = document.getElementById('objective').value;
+  document.getElementById('traffic_url_box').classList.toggle('hidden', obj !== 'OUTCOME_TRAFFIC');
+}
+
+// ── Audience toggle ──
+function onAudienceChange() {
+  const v = document.getElementById('saved_audience_id').value.trim();
+  document.getElementById('manual_targeting').classList.toggle('hidden', v.length > 0);
+}
+
+// ── Budget total ──
+function updateBudgetTotal() {
+  const b  = parseFloat(document.getElementById('budget')?.value || 0);
+  const d  = parseInt(document.getElementById('days')?.value || 0);
+  const el = document.getElementById('budget_total');
+  if(el && d > 0) {
+    el.textContent = `الإجمالي: ${(b*d).toFixed(2)}$ لمدة ${d} يوم`;
+    el.classList.remove('hidden');
+  } else if(el) {
+    el.classList.add('hidden');
+  }
+}
+
+// ── Extract post info ──
+function scheduleExtract() {
+  clearTimeout(STATE.extractTimer);
+  const url = document.getElementById('post_url').value.trim();
+  if(!url) return;
+  STATE.extractTimer = setTimeout(() => doExtract(url), 800);
+}
+
+async function doExtract(url) {
+  const status = document.getElementById('post_status');
+  status.classList.remove('hidden');
+  status.textContent  = '⏳ جاري الاستخراج...';
+  status.className    = 'text-xs text-gray-400 mt-1';
+  try {
+    const res = await fetch('/api/extract_post_info', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url, token: STATE.token})
+    }).then(r => r.json());
+
+    if(res.ok) {
+      STATE.extractedPageId = res.page_id || '';
+      STATE.extractedPostId = res.post_id || '';
+      if(res.page_id && res.post_id) {
+        status.textContent = `✅ Page: ${res.page_id} | Post: ${res.post_id}`;
+        status.className = 'text-xs text-green-400 mt-1';
+      } else {
+        status.textContent = `⚠️ Post: ${res.post_id || '؟'} | Page ID لم يُستخرج — يُستخدم Page Token المختار`;
+        status.className = 'text-xs text-yellow-400 mt-1';
+        // إذا في صفحة مختارة استخدم ID الصفحة المختارة
+        if(STATE.selectedPage) STATE.extractedPageId = STATE.selectedPage.id;
+      }
+    } else {
+      status.textContent = '❌ ' + res.reason;
+      status.className = 'text-xs text-red-400 mt-1';
+    }
+  } catch(e) {
+    status.textContent = '❌ خطأ في الاستخراج';
+    status.className = 'text-xs text-red-400 mt-1';
+  }
+}
+
+// ── Verify & Extract ──
+async function verifyAndExtract() {
+  STATE.cookies = document.getElementById('cookies').value;
+  STATE.proxy   = document.getElementById('proxy').value;
+  if(!STATE.cookies) return alert('أدخل الكوكيز');
+
+  document.getElementById('accounts_list').innerHTML = '<span class="loader"></span> جاري الاستخراج...';
+
+  try {
+    const res = await fetch('/api/verify_and_extract', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({cookies: STATE.cookies, proxy: STATE.proxy})
+    }).then(r => r.json());
+
+    if(res.ok) {
+      STATE.token    = res.token;
+      STATE.accounts = res.accounts;
+
+      let html = `<div class="bg-green-900/40 rounded p-2 text-xs">
+        ✅ التوكن: ${STATE.token ? STATE.token.substring(0,20)+'...' : 'لم يُستخرج'}
+        <span class="text-gray-400 mr-2">| ${res.name}</span>
+      </div>`;
+      res.accounts.forEach(a => {
+        html += `<div class="bg-gray-800 rounded px-2 py-1 text-xs">${a}</div>`;
+      });
+      document.getElementById('accounts_list').innerHTML = html;
+
+      // تعبئة قوائم الحسابات
+      ['card_account','ad_account'].forEach(id => {
+        const s = document.getElementById(id);
+        s.innerHTML = '<option value="">-- اختر --</option>';
+        res.accounts.forEach(a => { s.innerHTML += `<option value="${a}">${a}</option>`; });
+      });
+
+      // إظهار قسم الصفحات
+      if(STATE.token) {
+        document.getElementById('pages_section').classList.remove('hidden');
+        loadPages();
+      }
+    } else {
+      document.getElementById('accounts_list').innerHTML =
+        `<div class="text-red-400 text-xs">❌ ${res.reason}</div>`;
+    }
+  } catch(e) {
+    document.getElementById('accounts_list').innerHTML =
+      `<div class="text-red-400 text-xs">❌ ${e}</div>`;
+  }
+}
+
+// ── Load Pages ──
+async function loadPages() {
+  if(!STATE.token) return;
+  const listEl = document.getElementById('pages_list');
+  listEl.innerHTML = '<span class="loader"></span> جاري جلب الصفحات...';
+
+  try {
+    const res = await fetch('/api/get_pages', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({token: STATE.token})
+    }).then(r => r.json());
+
+    if(res.ok && res.pages.length > 0) {
+      STATE.pages = res.pages;
+      renderPagesList();
+    } else if(res.ok && res.pages.length === 0) {
+      listEl.innerHTML = '<div class="text-yellow-400 text-xs">⚠️ لا توجد صفحات مرتبطة بهذا الحساب</div>';
+    } else {
+      listEl.innerHTML = `<div class="text-red-400 text-xs">❌ ${res.reason}</div>`;
+    }
+  } catch(e) {
+    listEl.innerHTML = `<div class="text-red-400 text-xs">❌ ${e}</div>`;
+  }
+}
+
+function renderPagesList() {
+  const listEl = document.getElementById('pages_list');
+  listEl.innerHTML = '';
+  STATE.pages.forEach(pg => {
+    const isSelected = STATE.selectedPage?.id === pg.id;
+    const div = document.createElement('div');
+    div.className = 'page-chip flex justify-between items-center' + (isSelected ? ' selected' : '');
+    div.innerHTML = `
+      <div>
+        <div class="text-xs font-semibold text-gray-200">${pg.name}</div>
+        <div class="text-xs text-gray-500">ID: ${pg.id} ${pg.fan_count ? '| متابع: '+pg.fan_count.toLocaleString() : ''}</div>
+        <div class="text-xs text-green-600 font-mono">Token: ${pg.access_token ? pg.access_token.substring(0,18)+'...' : 'غير متاح'}</div>
+      </div>
+      <div class="text-xs ${isSelected ? 'text-blue-400 font-bold' : 'text-gray-500'}">${isSelected ? '✅ مختار' : 'اختر'}</div>
+    `;
+    div.onclick = () => selectPage(pg);
+    listEl.appendChild(div);
+  });
+}
+
+function selectPage(pg) {
+  STATE.selectedPage = pg;
+  renderPagesList();
+  // تحديث عرض الصفحة في Tab 3
+  document.getElementById('selected_page_display').textContent =
+    `${pg.name} (${pg.id}) — Page Token: ${pg.access_token ? pg.access_token.substring(0,20)+'...' : 'غير متاح'}`;
+  document.getElementById('selected_page_display').className = 'field text-green-400 text-xs';
+  // إظهار شريط إدارة الصفحة
+  document.getElementById('page_mgmt_bar').classList.remove('hidden');
+  document.getElementById('mgmt_page_name').textContent = pg.name;
+  // إذا ما في page_id مستخرج، استخدم ID الصفحة المختارة
+  if(!STATE.extractedPageId) STATE.extractedPageId = pg.id;
+}
+
+// ── Add Cards ──
+async function addCards() {
+  const acc = document.getElementById('card_account').value;
+  const log = document.getElementById('cards_log');
+  if(!acc) return alert('اختر الحساب الإعلاني');
+  if(!STATE.cookies) return alert('استخرج التوكن من التبويب الأول أولاً');
+
+  let body;
+  if(STATE.cardMode === 'auto') {
+    body = {cookies: STATE.cookies, proxy: STATE.proxy, ad_account: acc, mode: 'auto'};
+  } else {
+    const cards = document.getElementById('cards_text').value.trim();
+    if(!cards) return alert('أدخل البطاقات');
+    body = {cookies: STATE.cookies, proxy: STATE.proxy, ad_account: acc, mode: 'manual', cards_text: cards};
+  }
+
+  log.classList.remove('hidden');
+  log.innerHTML = '<span class="loader"></span> ' +
+    (STATE.cardMode === 'auto' ? 'جاري جلب كارت عشوائي وربطه...' : 'جاري ربط البطاقات...');
+
+  try {
+    const res = await fetch('/api/add_cards', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    }).then(r => r.json());
+
+    if(res.ok) {
+      log.innerHTML = res.results.map(r =>
+        `<div class="${r.status.includes('❌') ? 'text-red-400' : r.status.includes('⚠️') ? 'text-yellow-400' : 'text-green-400'}">${r.card} → ${r.status}</div>`
+      ).join('');
+    } else {
+      log.innerHTML = `<div class="text-red-400">❌ ${res.reason}</div>`;
+    }
+  } catch(e) {
+    log.innerHTML = `<div class="text-red-400">❌ ${e}</div>`;
+  }
+}
+
+// ── Create Ad ──
+async function createAd(publishStatus) {
+  const log = document.getElementById('ad_result');
+  const acc = document.getElementById('ad_account').value;
+  const obj = document.getElementById('objective').value;
+  const trafficUrl    = document.getElementById('traffic_url')?.value || '';
+  const savedAudience = document.getElementById('saved_audience_id').value.trim();
+
+  if(!acc)                                         return alert('اختر الحساب الإعلاني');
+  if(!STATE.token)                                 return alert('استخرج التوكن من التبويب الأول أولاً');
+  if(!STATE.extractedPageId || !STATE.extractedPostId) return alert('أدخل رابط المنشور وانتظر الاستخراج');
+  if(obj === 'OUTCOME_TRAFFIC' && !trafficUrl)     return alert('أدخل رابط الوجهة');
+
+  // الاستهداف
+  let targeting;
+  if(savedAudience) {
+    targeting = {custom_audiences: [{id: savedAudience}]};
+  } else {
+    const country = (document.getElementById('country').value.trim() || 'EG').toUpperCase();
+    const age_min = parseInt(document.getElementById('age_min').value) || 18;
+    const age_max = parseInt(document.getElementById('age_max').value) || 65;
+    const genderV = parseInt(document.getElementById('gender').value);
+    const geo     = {countries: [country]};
+    const areasRaw = document.getElementById('geo_areas').value.trim();
+    if(areasRaw) {
+      const regions = [], cities = [];
+      areasRaw.split('\n').forEach(line => {
+        line = line.trim(); if(!line) return;
+        const [type, id] = line.split(':');
+        if(type && id) {
+          if(type.trim().toLowerCase() === 'region') regions.push({key: id.trim()});
+          else if(type.trim().toLowerCase() === 'city') cities.push({key: id.trim()});
+        }
+      });
+      if(regions.length) geo.regions = regions;
+      if(cities.length)  geo.cities  = cities;
+    }
+    targeting = {geo_locations: geo, age_min, age_max};
+    if(genderV > 0) targeting.genders = [genderV];
+  }
+
+  // الجدولة
+  const scheduleMins = STATE.scheduled
+    ? (parseInt(document.getElementById('schedule_minutes').value) || 60) : 0;
+
+  log.classList.remove('hidden');
+  document.getElementById('btn_activate').classList.add('hidden');
+  const statusLabel = publishStatus === 'PAUSED' ? 'متوقف ⏸' : 'نشط ▶️';
+  log.innerHTML = `<span class="loader"></span> جاري إنشاء إعلان ${statusLabel}...`;
+
+  try {
+    const res = await fetch('/api/create_ad', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        token: STATE.token, ad_account: acc,
+        page_id: STATE.extractedPageId, post_id: STATE.extractedPostId,
+        budget: document.getElementById('budget').value,
+        days:   document.getElementById('days').value,
+        objective: obj, traffic_url: trafficUrl, targeting,
+        publish_status: publishStatus,
+        scheduled: STATE.scheduled,
+        schedule_minutes: scheduleMins
+      })
+    }).then(r => r.json());
+
+    if(res.ok) {
+      STATE.lastAdId    = res.ad_id;
+      STATE.lastCampId  = res.campaign_id;
+      STATE.lastAdSetId = res.adset_id;
+      log.innerHTML = `
+        <div class="text-green-400 font-bold">✅ ${res.message}</div>
+        <div class="text-gray-400 mt-1">Campaign: ${res.campaign_id}</div>
+        <div class="text-gray-400">AdSet: ${res.adset_id}</div>
+        <div class="text-gray-400">Ad: ${res.ad_id}</div>`;
+      // زر التنشيط يظهر فقط إذا نُشر كمتوقف
+      if(publishStatus === 'PAUSED') {
+        document.getElementById('btn_activate').classList.remove('hidden');
+      }
+    } else {
+      log.innerHTML = `<div class="text-red-400">❌ ${res.reason}</div>`;
+    }
+  } catch(e) {
+    log.innerHTML = `<div class="text-red-400">❌ ${e}</div>`;
+  }
+}
+
+// ── Activate Ad ──
+async function activateAd() {
+  if(!STATE.lastAdId) return alert('أنشئ الإعلان أولاً');
+  const log = document.getElementById('ad_result');
+  log.innerHTML += '<br><span class="loader"></span> جاري التنشيط (حملة + مجموعة + إعلان)...';
+
+  try {
+    const res = await fetch('/api/activate_ad', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        token: STATE.token, ad_id: STATE.lastAdId,
+        campaign_id: STATE.lastCampId, adset_id: STATE.lastAdSetId
+      })
+    }).then(r => r.json());
+
+    if(res.ok) {
+      log.innerHTML = `<div class="text-green-400 font-bold">✅ ${res.message}</div>
+        <div class="text-gray-400 mt-1">Ad ID: ${STATE.lastAdId}</div>`;
+      document.getElementById('btn_activate').classList.add('hidden');
+    } else {
+      log.innerHTML += `<br><div class="text-red-400">❌ ${res.reason}</div>`;
+    }
+  } catch(e) {
+    log.innerHTML += `<br><div class="text-red-400">❌ ${e}</div>`;
+  }
+}
+
+// ── Toggle Page Publish ──
+async function togglePagePublish(action) {
+  if(!STATE.selectedPage) return alert('اختر صفحة من التبويب الأول أولاً');
+  if(!STATE.selectedPage.access_token) return alert('لا يتوفر Page Token لهذه الصفحة');
+
+  const resEl  = document.getElementById('page_mgmt_result');
+  const label  = action === 'publish' ? 'إعادة نشر' : 'إلغاء نشر';
+  resEl.classList.remove('hidden');
+  resEl.textContent = `⏳ جاري ${label} الصفحة...`;
+  resEl.className = 'text-xs mt-1 text-gray-400';
+
+  try {
+    const res = await fetch('/api/toggle_page_publish', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        page_id:    STATE.selectedPage.id,
+        page_token: STATE.selectedPage.access_token,
+        action
+      })
+    }).then(r => r.json());
+
+    if(res.ok) {
+      resEl.textContent = res.message;
+      resEl.className = 'text-xs mt-1 text-green-400';
+    } else {
+      resEl.textContent = '❌ ' + res.reason;
+      resEl.className = 'text-xs mt-1 text-red-400';
+    }
+  } catch(e) {
+    resEl.textContent = '❌ ' + e;
+    resEl.className = 'text-xs mt-1 text-red-400';
+  }
+}
+</script>
+</body>
+</html>
